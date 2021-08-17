@@ -4,16 +4,19 @@ from matplotlib import pyplot as plt
 
 cap = cv.VideoCapture('video.mp4')
 
+crop_value = 2
+
 if cap.isOpened():
-    width  = int(cap.get(cv.CAP_PROP_FRAME_WIDTH)//4)
-    height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)//4)
+    width  = int(cap.get(cv.CAP_PROP_FRAME_WIDTH)//crop_value)
+    height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)//crop_value)
     fps = cap.get(cv.CAP_PROP_FPS)
 
       
 
 
 # Initiate FAST object with default values
-fast = cv.FastFeatureDetector_create()
+fast = cv.FastFeatureDetector_create(threshold=10, nonmaxSuppression=True, type=1)
+
 
 
 if (cap.isOpened()== False): 
