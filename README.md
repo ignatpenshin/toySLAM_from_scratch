@@ -11,4 +11,4 @@ And how to works with logged maps or tracks / how to save and read maps and brin
 Than I need to understand to put in one bag all academical knowledge about theory and found best correlation with avaliable or easy-dev scripts.)*** 
 
 Now the easiest part (George Hotz | Programming | Livecoding SLAM | twitchslam | Part 1), 
-from where I can learn some ideas to my own project or just try to build knowledge-base I need. I hope be hard-working with all this new stuff. Good luck to me ^_^:
+from where I can learn some ideas to my own project or just try to build knowledge-base I need. Hope I'll be hard-working with all this new stuff. Good luck to me ^_^:
