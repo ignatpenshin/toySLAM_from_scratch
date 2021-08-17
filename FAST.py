@@ -11,12 +11,12 @@ if cap.isOpened():
     height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)//crop_value)
     fps = cap.get(cv.CAP_PROP_FPS)
 
-      
-
 
 # Initiate FAST object with default values
 fast = cv.FastFeatureDetector_create(threshold=10, nonmaxSuppression=True, type=1)
 
+# Initiate BRIEF extractor
+brief = cv.xfeatures2d.BriefDescriptorExtractor_create()
 
 
 if (cap.isOpened()== False): 
@@ -30,14 +30,13 @@ while(cap.isOpened()):
     # find and draw the keypoints
     frame = cv.resize(frame, (width, height))
     kp = fast.detect(frame,None)
+    kp, des = brief.compute(frame, kp)
     img2 = cv.drawKeypoints(frame, kp, None, color=(0,255,0))
     
 
     # Print all default params
-    print( "Threshold: {}".format(fast.getThreshold()) )
-    print( "nonmaxSuppression:{}".format(fast.getNonmaxSuppression()) )
-    print( "neighborhood: {}".format(fast.getType()) )
-    print( "Total Keypoints with nonmaxSuppression: {}".format(len(kp)) )
+    print("BRIEF Desc SIZE: {}".format(brief.descriptorSize()))
+    print("Total Keypoints: {}".format(len(kp)))
 
     # Display the resulting frame
     cv.imshow('Frame', img2, )
@@ -51,11 +50,3 @@ while(cap.isOpened()):
 
 cap.release()
 cv.destroyAllWindows()
-
-
-# # Disable nonmaxSuppression
-# fast.setNonmaxSuppression(0)
-# kp = fast.detect(img,None)
-# print( "Total Keypoints without nonmaxSuppression: {}".format(len(kp)) )
-# img3 = cv.drawKeypoints(img, kp, None, color=(255,0,0))
-# cv.imwrite('fast_false.png',img3)
