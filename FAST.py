@@ -5,9 +5,10 @@ from matplotlib import pyplot as plt
 cap = cv.VideoCapture('video.mp4')
 
 if cap.isOpened():
-    width  = cap.get(cv.CAP_PROP_FRAME_WIDTH)   
-    height = cap.get(cv.CAP_PROP_FRAME_HEIGHT)
+    width  = int(cap.get(cv.CAP_PROP_FRAME_WIDTH)//4)
+    height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)//4)
     fps = cap.get(cv.CAP_PROP_FPS)
+
       
 
 
@@ -24,8 +25,10 @@ while(cap.isOpened()):
   if ret == True:
 
     # find and draw the keypoints
+    frame = cv.resize(frame, (width, height))
     kp = fast.detect(frame,None)
     img2 = cv.drawKeypoints(frame, kp, None, color=(0,255,0))
+    
 
     # Print all default params
     print( "Threshold: {}".format(fast.getThreshold()) )
@@ -34,7 +37,7 @@ while(cap.isOpened()):
     print( "Total Keypoints with nonmaxSuppression: {}".format(len(kp)) )
 
     # Display the resulting frame
-    cv.imshow('Frame', img2)
+    cv.imshow('Frame', img2, )
 
     # Press Q on keyboard to  exit
     if cv.waitKey(25) & 0xFF == ord('q'):
