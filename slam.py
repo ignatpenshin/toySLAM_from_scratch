@@ -1,20 +1,22 @@
 import cv2 as cv
 import numpy as np
+from skimage.measure import ransac
+from skimage.transform import FundamentalMatrixTransform
 
 
 class Extractor(object):
   def __init__(self):
     self.orb = cv.ORB_create()
-    self.bf = cv.BFMatcher(cv.NORM_HAMMING)
+    self.bf = cv.BFMatcher(cv.NORM_HAMMING2)
     self.last = None
-  
+
 
   def extract(self, frame):
     #detection
-    corners = cv.goodFeaturesToTrack(image=frame, maxCorners=5000, qualityLevel=0.01, minDistance=3) 
+    corners = cv.goodFeaturesToTrack(image=frame, maxCorners=1000, qualityLevel=0.01, minDistance=3) 
 
     #extraction
-    kps = [cv.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in corners]
+    kps = [cv.KeyPoint(x=f[0][0], y=f[0][1], size=20) for f in corners]
     kps, des = self.orb.compute(frame, kps)
      
     #matching
@@ -24,6 +26,16 @@ class Extractor(object):
       for m,n in matches:
         if m.distance < 0.65*n.distance:
           ret.append((kps[m.queryIdx], self.last['kps'][m.trainIdx]))
+    print(ret)
+    random_seed = 9
+    rng = np.random.default_rng(random_seed)
+    model, inliers = ransac((ret[:, 0],
+                            ret[:, 1]),
+                            FundamentalMatrixTransform, min_samples=8,
+                            residual_threshold=1, max_trials=5000,
+                            random_state=rng)
+    print(model, inliers)
+    print(f'Number of inliers: {inliers.sum()}')        
     self.last = {'kps': kps, 'des' : des}
     return kps, des, ret
 
@@ -31,7 +43,7 @@ class Extractor(object):
 def process_frame(video):
 
   cap = cv.VideoCapture(video)
-  crop_value = 2
+  crop_value = 4
   
   if cap.isOpened():
     width  = int(cap.get(cv.CAP_PROP_FRAME_WIDTH)//crop_value)
