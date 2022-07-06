@@ -102,7 +102,8 @@ def process_frame(video_list):
         img = cv.resize(frame, (s.W, s.H))
         frame = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
-        kps, des, matches, Rt = s.extract(frame)
+        kps, des, matches, pos = s.extract(frame)
+        if pos is None: continue
 
         for pt1, pt2 in matches:
           u1, v1 = s.denormailze(pt1)
