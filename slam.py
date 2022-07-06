@@ -9,7 +9,7 @@ class Extractor(object):
     self.orb = cv.ORB_create()
     self.bf = cv.BFMatcher(cv.NORM_HAMMING2)
     self.last = None
-    self.F = 120
+    self.F = 75
     self.K = None 
     self.Kinv = None
     self.W, self.H = None, None
@@ -22,8 +22,21 @@ class Extractor(object):
 
   def denormailze(self, pt):
     ret = np.dot(self.K, np.array([pt[0], pt[1], 1.0]))
-
     return int(ret[0]), int(ret[1])
+
+  def pose_from_E(self, E):
+    #Hartley & Zisserman (Chapter 6, Essential -> R,t)
+    W=np.mat([[0,-1,0],[1,0,0],[0,0,1]],dtype=float)
+    u, w, vt = np.linalg.svd(E)
+    if np.linalg.det(vt.T) < 0:  # vt or v?
+      vt *= -1.0
+    if np.linalg.det(u) < 0:
+      u *= -1.0
+    R = np.dot(np.dot(u, W), vt)
+    if np.sum(R.diagonal()) < 0:
+      R = np.dot(np.dot(u, W.T), vt)   
+    t = u[:, 2]
+    return R, t
 
   def extract(self, frame):
     #detection
@@ -54,8 +67,9 @@ class Extractor(object):
                                     method = cv.FM_RANSAC, 
                                     prob = 0.99, threshold = 0.01)
       ret = ret[mask.ravel()==1]
-      print(E)
       
+      R, t = self.pose_from_E(E)
+      print(R, t)      
       
     self.last = {'kps': kps, 'des' : des}
     return kps, des, ret
