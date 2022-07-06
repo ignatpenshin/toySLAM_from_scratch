@@ -36,7 +36,8 @@ class Extractor(object):
     if np.sum(R.diagonal()) < 0:
       R = np.dot(np.dot(u, W.T), vt)   
     t = u[:, 2]
-    return R, t
+    Rt = np.concatenate([R, t.reshape(3, 1)], axis = 1)  
+    return Rt
 
   def extract(self, frame):
     #detection
@@ -45,6 +46,7 @@ class Extractor(object):
     #extraction
     kps = [cv.KeyPoint(x=f[0][0], y=f[0][1], size=20) for f in corners]
     kps, des = self.orb.compute(frame, kps)
+    Rt = None 
      
     #matching
     ret = []
@@ -67,12 +69,11 @@ class Extractor(object):
                                     method = cv.FM_RANSAC, 
                                     prob = 0.99, threshold = 0.01)
       ret = ret[mask.ravel()==1]
-      
-      R, t = self.pose_from_E(E)
-      print(R, t)      
-      
+      Rt = self.pose_from_E(E)
+      print(Rt)  
+            
     self.last = {'kps': kps, 'des' : des}
-    return kps, des, ret
+    return kps, des, ret, Rt
 
 def process_frame(video_list):
 
@@ -101,7 +102,7 @@ def process_frame(video_list):
         img = cv.resize(frame, (s.W, s.H))
         frame = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
-        kps, des, matches = s.extract(frame)
+        kps, des, matches, Rt = s.extract(frame)
 
         for pt1, pt2 in matches:
           u1, v1 = s.denormailze(pt1)
