@@ -1,15 +1,29 @@
 import cv2 as cv
 import numpy as np
-from skimage.measure import ransac
-from skimage.transform import FundamentalMatrixTransform
+import os
 
+from matplotlib import pyplot as plt
 
 class Extractor(object):
   def __init__(self):
     self.orb = cv.ORB_create()
     self.bf = cv.BFMatcher(cv.NORM_HAMMING2)
     self.last = None
+    self.F = 1
+    self.K = None 
+    self.Kinv = None
+    self.W, self.H = None, None
 
+  def add_ones(self, x):
+    return np.concatenate([x, np.ones((x.shape[0], 1))], axis=1)
+
+  def normalize(self, pts):
+    return np.dot(self.Kinv, self.add_ones(pts).T).T[:, 0:2]
+
+  def denormailze(self, pt):
+    ret = np.dot(self.K, np.array([pt[0], pt[1], 1.0]))
+
+    return int(ret[0]), int(ret[1])
 
   def extract(self, frame):
     #detection
@@ -21,66 +35,79 @@ class Extractor(object):
      
     #matching
     ret = []
+
     if self.last is not None:
       matches = self.bf.knnMatch(des, self.last['des'], k=2)
       for m,n in matches:
         if m.distance < 0.65*n.distance:
-          ret.append((kps[m.queryIdx], self.last['kps'][m.trainIdx]))
-    print(ret)
-    random_seed = 9
-    rng = np.random.default_rng(random_seed)
-    model, inliers = ransac((ret[:, 0],
-                            ret[:, 1]),
-                            FundamentalMatrixTransform, min_samples=8,
-                            residual_threshold=1, max_trials=5000,
-                            random_state=rng)
-    print(model, inliers)
-    print(f'Number of inliers: {inliers.sum()}')        
+          ret.append((kps[m.queryIdx].pt, self.last['kps'][m.trainIdx].pt))
+      ret = np.array(ret)
+
+      # normalize keypoint coords to move to 0:
+      ret[:, 0, :] = self.normalize(ret[:, 0, :]) 
+      ret[:, 1, :] = self.normalize(ret[:, 1, :])
+      
+      #filter
+      F, mask = cv.findFundamentalMat(np.int32([i[0] for i in ret]),
+                                      np.int32([i[1] for i in ret]),
+                                      cv.FM_RANSAC, 0.1, 0.99)
+      ret = ret[mask.ravel()==1]
+      
+      
     self.last = {'kps': kps, 'des' : des}
     return kps, des, ret
 
-  
-def process_frame(video):
-
-  cap = cv.VideoCapture(video)
-  crop_value = 4
-  
-  if cap.isOpened():
-    width  = int(cap.get(cv.CAP_PROP_FRAME_WIDTH)//crop_value)
-    height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)//crop_value)
-    fps = cap.get(cv.CAP_PROP_FPS)
+def process_frame(video_list):
 
   s = Extractor()
 
-  if (cap.isOpened()== False): 
-    print("Error opening vid eo stream or file")
+  for video in video_list:
+    cap = cv.VideoCapture(video)
+    crop_value = 4
 
-  while(cap.isOpened()):
-    
-    # Capture frame-by-frame
-    ret, frame = cap.read()
-    if ret == True:
-      # print(cap.get(cv.CAP_PROP_POS_FRAMES))
-      img = cv.resize(frame, (width, height))
-      frame = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+    if cap.isOpened():
+      if (s.W and s.H and s.K) is None:
+        s.W  = int(cap.get(cv.CAP_PROP_FRAME_WIDTH)//crop_value)
+        s.H = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)//crop_value)
+        s.K = np.array([[s.F,0,s.W//2], [0,s.F,s.H//2], [0, 0, 1]])
+        s.Kinv = np.linalg.inv(s.K)
+        fps = cap.get(cv.CAP_PROP_FPS)
 
-      kps, des, matches = s.extract(frame)
+    if (cap.isOpened()== False): 
+      print("Error opening vid eo stream or file")
 
-      for pt1, pt2 in matches:
-        u1, v1 = map(lambda x: int(round(x)), pt1.pt)
-        u2, v2 = map(lambda x: int(round(x)), pt2.pt)
-        cv.circle(img, (u1,v1), color=(0,255,0), radius=3)
-        cv.line(img, (u1,v1), (u2,v2), color=(255,0,0))
+    while(cap.isOpened()):
 
+      # Capture frame-by-frame
+      ret, frame = cap.read()
+      if ret == True:
+        img = cv.resize(frame, (s.W, s.H))
+        frame = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
-      frame = cv.drawKeypoints(img, kps, None, color=(0,255,0), flags=0)
-    
-      # Display the resulting frame
-      cv.imshow('Frame', frame)
+        kps, des, matches = s.extract(frame)
 
-      # Press Q on keyboard to  exit
-      if cv.waitKey(25) & 0xFF == ord('q'):
-        break
+        for pt1, pt2 in matches:
+          u1, v1 = s.denormailze(pt1)
+          u2, v2 = s.denormailze(pt2)
+          cv.circle(img, (u1,v1), color=(0,0,255), radius=10)
+          cv.line(img, (u1,v1), (u2,v2), color=(255,0,0), thickness = 2)
 
-process_frame('video.mp4')
+        frame = cv.drawKeypoints(img, kps, None, color=(0,255,0), flags=0)
+
+        # Display the resulting frame
+        cv.imshow('Frame', frame)
+
+        # Press Q on keyboard to  exit
+        if cv.waitKey(25) & 0xFF == ord('q'):
+          break
+      else:
+        cap.release() 
+
+video_list = []
+os.chdir('VIDEO')
+for i in os.listdir():
+  if i.endswith('.mp4'):
+    video_list.append(i)
+
+process_frame(video_list)
 
