@@ -1,2 +1,5 @@
 # toySLAM_from_scratch
-Good corners -> orb -> knnMatch -> Intrinsics -> norm/denorm features -> Essential matrix -> ?
+// Hartley, Zisserman (Chapter 5, 6)
+
+
+Good corners -> orb -> knnMatch -> Intrinsics -> norm/denorm features -> Essential matrix -> extract R,t (for pairs)
