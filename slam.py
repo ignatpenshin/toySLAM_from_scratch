@@ -9,7 +9,7 @@ class Extractor(object):
     self.orb = cv.ORB_create()
     self.bf = cv.BFMatcher(cv.NORM_HAMMING2)
     self.last = None
-    self.F = 1
+    self.F = 120
     self.K = None 
     self.Kinv = None
     self.W, self.H = None, None
@@ -48,10 +48,13 @@ class Extractor(object):
       ret[:, 1, :] = self.normalize(ret[:, 1, :])
       
       #filter
-      F, mask = cv.findFundamentalMat(np.int32([i[0] for i in ret]),
-                                      np.int32([i[1] for i in ret]),
-                                      cv.FM_RANSAC, 0.1, 0.99)
+      E, mask = cv.findEssentialMat(points1 = np.int32([i[0] for i in ret]),
+                                    points2 = np.int32([i[1] for i in ret]),
+                                    cameraMatrix = self.K,
+                                    method = cv.FM_RANSAC, 
+                                    prob = 0.99, threshold = 0.01)
       ret = ret[mask.ravel()==1]
+      print(E)
       
       
     self.last = {'kps': kps, 'des' : des}
