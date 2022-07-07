@@ -30,16 +30,7 @@ class Extractor(object):
     Z=np.mat([[0,1,0],[-1,0,0],[0,0,0]],dtype=float)
     u, lm, vt = np.linalg.svd(E)
     lm = np.diag(lm)
-    
 
-    # R_1 = u @ W @ vt
-    # R_2 = u @ W.T @ vt
-    # S_1 = u @ Z @ u.T
-    # S_2 = u @ Z.T @ u.T
-    # skewInv = lambda x:np.array([-x[1, 2], x[0, 2], -x[0, 1]]) 
-
-
-    #print(vt, '\n')
     if np.linalg.det(vt.T) < 0:  # vt or v?
       vt *= -1.0
     if np.linalg.det(u) < 0:
